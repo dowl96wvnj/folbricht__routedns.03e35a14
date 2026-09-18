@@ -18,12 +18,12 @@ func (s *LuaScript) RegisterQuestionType() {
 	// static attributes
 	L.SetField(mt, "new", L.NewFunction(
 		func(L *lua.LState) int {
-			q := &dns.Question{}
+			q := &dns.Question{Qclass: dns.ClassINET}
 			nArgs := L.GetTop()
 			if nArgs >= 1 { // Name provided
 				q.Name = L.CheckString(1)
 			}
-			if nArgs > 2 { // Name and type
+			if nArgs >= 2 { // Name and type
 				q.Qtype = uint16(L.CheckNumber(2))
 			}
 			if nArgs >= 3 { // Name, type and class
@@ -45,9 +45,9 @@ func (s *LuaScript) RegisterQuestionType() {
 			case "name":
 				L.Push(lua.LString(question.Name))
 			case "qtype":
-				L.Push(lua.LNumber(question.Qclass))
-			case "qclass":
 				L.Push(lua.LNumber(question.Qtype))
+			case "qclass":
+				L.Push(lua.LNumber(question.Qclass))
 			default:
 				L.ArgError(2, fmt.Sprintf("question does not have field %q", fieldName))
 				return 0
