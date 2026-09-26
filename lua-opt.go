@@ -23,11 +23,11 @@ func (s *LuaScript) RegisterOPTType() {
 		opt.Hdr.Name = "."
 		opt.Hdr.Rrtype = dns.TypeOPT
 		nArgs := L.GetTop()
-		if nArgs > 1 { // UDP size
+		if nArgs >= 1 { // UDP size
 			opt.SetUDPSize(uint16(L.CheckNumber(1)))
 		}
 		if nArgs >= 2 { // DO bit
-			if !L.CheckBool(2) {
+			if L.CheckBool(2) {
 				opt.SetDo()
 			}
 		}
@@ -56,7 +56,7 @@ func (s *LuaScript) RegisterOPTType() {
 				for _, v := range opt.Option {
 					mtName := reflect.TypeOf(v).String()
 					if i := strings.LastIndex(mtName, "."); i >= 0 {
-						mtName = mtName[i:]
+						mtName = mtName[i+1:]
 					}
 					lv := userDataWithMetatable(L, mtName, v)
 					table.Append(lv)
@@ -86,8 +86,8 @@ func (s *LuaScript) RegisterOPTType() {
 				if L.CheckBool(3) {
 					opt.SetDo()
 				} else {
-					// Clear the DO bit from the flags in Ttl
-					opt.Hdr.Ttl &^= 1 << 14
+					// Clear the DO bit: mask out bit 15 from the flags in Ttl
+					opt.Hdr.Ttl &^= 1 << 15
 				}
 			case "version":
 				opt.SetVersion(uint8(L.CheckNumber(3)))
@@ -97,7 +97,7 @@ func (s *LuaScript) RegisterOPTType() {
 				table := L.CheckTable(3)
 				n := table.Len()
 				options := make([]dns.EDNS0, 0, n)
-				for i := 0; i < n-1; i++ {
+				for i := range n {
 					element := table.RawGetInt(i + 1)
 					ud, ok := element.(*lua.LUserData)
 					if !ok {
