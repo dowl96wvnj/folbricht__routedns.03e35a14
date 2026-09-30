@@ -31,7 +31,7 @@ func (s *LuaScript) RegisterMessageType() {
 			switch fieldName {
 			case "questions":
 				table := L.CreateTable(len(msg.Question), 0)
-				for i := len(msg.Question) - 1; i >= 0; i-- {
+				for i := range msg.Question {
 					lv := userDataWithMetatable(L, luaQuestionMetatableName, &msg.Question[i])
 					table.Append(lv)
 				}
@@ -43,9 +43,9 @@ func (s *LuaScript) RegisterMessageType() {
 			case "rcode":
 				L.Push(lua.LNumber(msg.Rcode))
 			case "recursion_desired":
-				L.Push(lua.LBool(msg.RecursionAvailable))
-			case "recursion_available":
 				L.Push(lua.LBool(msg.RecursionDesired))
+			case "recursion_available":
+				L.Push(lua.LBool(msg.RecursionAvailable))
 			case "authoritative":
 				L.Push(lua.LBool(msg.Authoritative))
 			case "authenticated_data":
@@ -63,7 +63,7 @@ func (s *LuaScript) RegisterMessageType() {
 						if !ok {
 							return 0
 						}
-						request.SetReply(msg)
+						msg.SetReply(request)
 						lv := userDataWithMetatable(L, luaMessageMetatableName, msg)
 						L.Push(lv)
 						return 1
@@ -115,7 +115,7 @@ func (s *LuaScript) RegisterMessageType() {
 				n := table.Len()
 				questions := make([]dns.Question, 0, n)
 				for i := range n {
-					element := table.RawGetInt(i)
+					element := table.RawGetInt(i + 1)
 					if element.Type() != lua.LTUserData {
 						L.ArgError(3, "invalid type, expected userdata")
 						return 0
